@@ -55,10 +55,13 @@ class Perceptron(Classifier):
         verbose : boolean
             Print logging messages with validation accuracy if verbose is True.
         """
-
-        # Here you have to implement the Perceptron Learning Algorithm
-        # to change the weights of the Perceptron
-        pass
+        # Implementation of the Perceptron Learning Algorithm
+        for epoch in range(self.epochs):
+            logging.info("Epoch {}".format(epoch))
+            for x, l in zip(self.trainingSet.input, self.trainingSet.label):
+                y = 1 if self.fire(x) else 0
+                for i in range(len(self.weight)):
+                    self.weight[i] += self.learningRate * (l - y) * x[i]
 
     def classify(self, testInstance):
         """Classify a single instance.
@@ -72,10 +75,7 @@ class Perceptron(Classifier):
         bool :
             True if the testInstance is recognized as a 7, False otherwise.
         """
-        # Here you have to implement the classification for one instance,
-        # i.e., return True if the testInstance is recognized as a 7,
-        # False otherwise
-        pass
+        return self.fire(testInstance) > 0
 
     def evaluate(self, test=None):
         """Evaluate a whole dataset.
