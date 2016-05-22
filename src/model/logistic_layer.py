@@ -42,19 +42,20 @@ class LogisticLayer():
         # Get activation function from string
         self.activation_string = activation
         self.activation = Activation.get_activation(self.activation_string)
+        self.activation_derivative = Activation.get_derivative(self.activation_string)
 
         self.n_in = n_in
         self.n_out = n_out
 
-        self.inp = np.ndarray((n_in+1, 1))
-        self.inp[0] = 1
-        self.outp = np.ndarray((n_out, 1))
-        self.deltas = np.zeros((n_out, 1))
+        self.inp = None
+        self.outp = None
+        self.deltas = None
 
         # You can have better initialization here
         if weights is None:
-            self.weight = np.random.rand(n_in, n_out)/10
+            self.weights = np.random.rand(n_in + 1, n_out)/10
         else:
+            assert(weights.shape == (n_in + 1, n_out))
             self.weights = weights
 
         self.is_classifier_layer = is_classifier_layer
@@ -77,9 +78,9 @@ class LogisticLayer():
         outp: ndarray
             a numpy array (1,n_out) containing the output of the layer
         """
-
-        # Here you have to implement the forward pass
-        pass
+        self.inp = inp
+        self.outp = self._fire(self.inp)
+        return self.outp
 
     def computeDerivative(self, nextDerivatives, nextWeights):
         """
@@ -98,16 +99,22 @@ class LogisticLayer():
             a numpy array containing the partial derivatives on this layer
         """
 
-        # Here the implementation of partial derivative calculation
-        pass
+        # "Undo" the activation function
+        nextDerivatives *= self.activation_derivative(np.dot(self.inp, self.weights))
 
-    def updateWeights(self):
+        # Compute error wrt to the inputs
+        self.deltas = np.dot(self.weights, nextDerivatives)
+        assert(self.deltas.shape == (self.n_in + 1,))
+
+        # Compute error wrt to out weights
+        self.weight_deltas = np.dot(np.array([self.inp]).T, [nextDerivatives])
+        assert(self.weight_deltas.shape == (self.n_in + 1, self.n_out))
+
+    def updateWeights(self, learningRate):
         """
         Update the weights of the layer
         """
-
-        # Here the implementation of weight updating mechanism
-        pass
+        self.weights -= learningRate * self.weight_deltas
 
     def _fire(self, inp):
-        return Activation.sigmoid(np.dot(np.array(inp), self.weight))
+        return Activation.sigmoid(np.dot(np.array(inp), self.weights))

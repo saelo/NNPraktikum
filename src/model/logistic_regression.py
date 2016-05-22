@@ -8,6 +8,10 @@ import numpy as np
 from util.activation_functions import Activation
 from model.classifier import Classifier
 
+from sklearn.metrics import accuracy_score
+
+from model.logistic_layer import LogisticLayer
+
 logging.basicConfig(format='%(asctime)s %(levelname)s %(message)s',
                     level=logging.DEBUG,
                     stream=sys.stdout)
@@ -44,6 +48,8 @@ class LogisticRegression(Classifier):
         self.validationSet = valid
         self.testSet = test
 
+        self.neuron = LogisticLayer(784, 1)
+
     def train(self, verbose=True):
         """Train the Logistic Regression.
 
@@ -53,9 +59,26 @@ class LogisticRegression(Classifier):
             Print logging messages with validation accuracy if verbose is True.
         """
 
-        # Here you have to implement training method "epochs" times
-        # Please using LogisticLayer class
-        pass
+        for epoch in range(self.epochs):
+            if verbose:
+                print("Training epoch {0}/{1}..".format(epoch + 1, self.epochs))
+
+            self._train_one_epoch()
+
+            if verbose:
+                accuracy = accuracy_score(self.validationSet.label,
+                                          self.evaluate(self.validationSet))
+                print("Accuracy on validation: {0:.2f}%".format(accuracy*100))
+                print("-----------------------------")
+
+    def _train_one_epoch(self):
+        for x, y_ in zip(self.trainingSet.input, self.trainingSet.label):
+            y = self.neuron.forward(x)
+
+            # Assumimg a loss function of 1/2 * (Y - Y_)^2, the gradient of the loss function wrt
+            # to the output of the final neuron becomes (Y - Y_)
+            self.neuron.computeDerivative(np.array(y - y_), None)
+            self.neuron.updateWeights(self.learningRate)
 
     def classify(self, testInstance):
         """Classify a single instance.
@@ -70,8 +93,8 @@ class LogisticRegression(Classifier):
             True if the testInstance is recognized as a 7, False otherwise.
         """
 
-        # Here you have to implement classification method given an instance
-        pass
+        output = self.neuron.forward(testInstance)
+        return output > 0.5
 
     def evaluate(self, test=None):
         """Evaluate a whole dataset.
