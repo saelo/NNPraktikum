@@ -29,28 +29,31 @@ class MNISTSeven(object):
 
     # dataPath = "data/mnist_seven.csv"
 
-    def __init__(self, dataPath, numTrain=3000, numValid=1000, numTest=1000):
+    def __init__(self, data_path,
+                 num_train=3000,
+                 num_valid=1000,
+                 num_test=1000):
 
-        self.trainingSet = []
-        self.validationSet = []
-        self.testSet = []
+        self.training_set = []
+        self.validation_set = []
+        self.test_set = []
 
-        self.load(dataPath, numTrain, numValid, numTest)
+        self.load(data_path, num_train, num_valid, num_test)
 
-    def load(self, dataPath, numTrain, numValid, numTest):
+    def load(self, data_path, num_train, num_valid, num_test):
         """Load the data."""
-        print("Loading data from " + dataPath + "...")
+        print("Loading data from " + data_path + "...")
 
-        data = np.genfromtxt(dataPath, delimiter=",", dtype="uint8")
+        data = np.genfromtxt(data_path, delimiter=",", dtype="uint8")
 
         # The last numTest instances ALWAYS comprise the test set.
-        train, test = data[:numTrain+numValid], data[numTrain+numValid:]
+        train, test = data[:num_train+num_valid], data[num_train+num_valid:]
         shuffle(train)
 
-        train, valid = train[:numTrain], train[numTrain:]
+        train, valid = train[:num_train], train[num_train:]
 
-        self.trainingSet = DataSet(train)
-        self.validationSet = DataSet(valid)
-        self.testSet = DataSet(test)
+        self.training_set = DataSet(train)
+        self.validation_set = DataSet(valid)
+        self.test_set = DataSet(test)
 
         print("Data loaded.")
