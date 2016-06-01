@@ -20,7 +20,7 @@ class DataSet(object):
     label : list
         A labels for the data given in `input`.
     one_hot : bool
-    targetDigit : string
+    target_digit : string
     """
 
     def __init__(self, data, one_hot=True, target_digit='7'):

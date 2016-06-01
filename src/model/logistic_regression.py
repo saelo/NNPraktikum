@@ -32,7 +32,6 @@ class LogisticRegression(Classifier):
     training_set : list
     validation_set : list
     test_set : list
-    weight : list
     learning_rate : float
     epochs : positive int
     performances: array of floats
