@@ -51,13 +51,15 @@ class Activation:
 
     @staticmethod
     def softmax(outp):
-        # Here you have to code the softmax function
-        pass
+        e = exp(outp)
+        return e / sum(e)
 
     @staticmethod
     def softmax_prime(outp):
-        # Here you have to code the the derivative of softmax function
-        pass
+        # We "shortcut" the computation of the softmax derivative by directly computing
+        # the derivative of the loss function wrt to the inputs of the softmax activation.
+        # This function is thus never needed.
+        raise Exception("Use a softmax activation in the last layer")
 
     @staticmethod
     def get_activation(function_name):
