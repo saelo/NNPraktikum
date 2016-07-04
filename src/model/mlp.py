@@ -16,7 +16,7 @@ class MultilayerPerceptron(Classifier):
 
     def __init__(self, train, valid, test, layers=None, input_weights=None,
                  output_task='classification', output_activation='softmax',
-                 cost='crossentropy', learning_rate=0.01, epochs=50):
+                 cost='crossentropy', learning_rate=0.01, epochs=50, no_add_bias=False):
 
         """
         A digit-7 recognizer based on logistic regression algorithm
@@ -79,12 +79,13 @@ class MultilayerPerceptron(Classifier):
         else:
             self.layers = layers
 
-        # add bias values ("1"s) at the beginning of all data sets
-        self.training_set.input = np.insert(self.training_set.input, 0, 1,
-                                            axis=1)
-        self.validation_set.input = np.insert(self.validation_set.input, 0, 1,
-                                              axis=1)
-        self.test_set.input = np.insert(self.test_set.input, 0, 1, axis=1)
+        if not no_add_bias:
+            # add bias values ("1"s) at the beginning of all data sets
+            self.training_set.input = np.insert(self.training_set.input, 0, 1,
+                                                axis=1)
+            self.validation_set.input = np.insert(self.validation_set.input, 0, 1,
+                                                  axis=1)
+            self.test_set.input = np.insert(self.test_set.input, 0, 1, axis=1)
 
     def _get_layer(self, layer_index):
         return self.layers[layer_index]

@@ -42,12 +42,12 @@ class Activation:
 
     @staticmethod
     def identity(outp):
-        return lambda x: x
+        return outp
 
     @staticmethod
     def identity_prime(outp):
         # Here you have to code the derivative of identity function
-        pass
+        return 1
 
     @staticmethod
     def softmax(outp):
