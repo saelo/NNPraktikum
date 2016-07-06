@@ -45,10 +45,8 @@ def main():
     # Feed it to be a hidden layer of the MLP, continue training (fine-tuning)
     # And do the classification
 
-    mlp_layers = []
-    hidden_layer = myDAE._get_weights()         # take first layer from auto encoder
-    mlp_layers.append(hidden_layer)
-    mlp_layers.append(LogisticLayer(hidden_layer.size,
+    mlp_layers = myDAE._get_weights()       # Take encoding layers
+    mlp_layers.append(LogisticLayer(mlp_layers[-1].size,
                                     10, None,
                                     activation="softmax",
                                     is_classifier_layer=True))
@@ -58,8 +56,7 @@ def main():
                                            data.test_set,
                                            layers=mlp_layers,
                                            learning_rate=0.05,
-                                           epochs=30,
-                                           no_add_bias=True)
+                                           epochs=30)
 
     print("\nMulti-layer Perceptron has been training..")
     myMLPClassifier.train()

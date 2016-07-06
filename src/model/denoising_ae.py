@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys
+import copy
 import logging
 import numpy as np
 from model.logistic_layer import LogisticLayer
@@ -38,9 +39,9 @@ class DenoisingAutoEncoder(AutoEncoder):
         self.learning_rate = learning_rate
         self.epochs = epochs
 
-        self.training_set = train
-        self.validation_set = valid
-        self.test_set = test
+        self.training_set = copy.deepcopy(train)        # make a copy since we're changing things
+        self.validation_set = copy.deepcopy(valid)
+        self.test_set = copy.deepcopy(test)
 
         self.error = MeanSquaredError()
 
@@ -57,7 +58,7 @@ class DenoisingAutoEncoder(AutoEncoder):
         # Output layer
         self.layers.append(LogisticLayer(number_of_1st_hidden_layer,
                                          train.input.shape[1], None,
-                                         activation="linear",
+                                         activation="sigmoid",
                                          is_classifier_layer=False))
 
         # The label is the original input in case of an autoencoder
@@ -106,7 +107,10 @@ class DenoisingAutoEncoder(AutoEncoder):
         for layer in self.layers:
             last_layer_output = layer.forward(last_layer_output)
             # Do not forget to add bias for every layer
-            last_layer_output = np.insert(last_layer_output, 0, 1, axis=0)
+            if layer != self.layers[-1]:
+                last_layer_output = np.insert(last_layer_output, 0, 1, axis=0)
+
+        return last_layer_output
 
     def _compute_error(self, output, target):
         """
@@ -119,25 +123,17 @@ class DenoisingAutoEncoder(AutoEncoder):
         """
         self._err += self.error.calculate_error(target, output)
 
-        # Calculate the deltas of the output layer
-        self.layers[-1].deltas = target - output
-
-        # Calculate deltas (error terms) backward except the output layer
-        for i in reversed(range(0, len(self.layers) - 1)):
-            current_layer = self.layers[i]
-            next_layer = self.layers[i+1]
-            next_weights = np.delete(next_layer.weights, 0, axis=0)
-            next_derivatives = next_layer.deltas
-
-            current_layer.computeDerivative(next_derivatives, next_weights.T)
-
-    def _update_weights(self):
+    def _update_weights(self, output, target):
         """
         Update the weights of the layers by propagating back the error
         """
-        # Update the weights layer by layers
-        for layer in self.layers:
+        # MSE: Compute error wrt to the last layers output
+        deriv = output - target
+
+        for layer in reversed(self.layers):
+            deriv = layer.computeDerivative(deriv)
             layer.updateWeights(self.learning_rate)
+            deriv = np.delete(deriv, 0, axis=0)
 
     def _train_one_epoch(self):
         """
@@ -145,14 +141,13 @@ class DenoisingAutoEncoder(AutoEncoder):
         """
         self._err = 0.0
         for img, label in zip(self.training_set.input, self.training_set.labels):
-            self._feed_forward(img)
-            output = self.layers[-1].outp
+            output = self._feed_forward(img)
             self._compute_error(output, label)
-            self._update_weights()
+            self._update_weights(output, label)
         self._err /= len(self.training_set.input)
 
     def _get_weights(self):
         """
-        Get the weights (after training)
+        Get the encoder weights (after training)
         """
-        return self.layers[0]
+        return self.layers[:-1]

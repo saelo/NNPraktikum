@@ -1,3 +1,4 @@
+import copy
 
 import numpy as np
 
@@ -16,7 +17,7 @@ class MultilayerPerceptron(Classifier):
 
     def __init__(self, train, valid, test, layers=None, input_weights=None,
                  output_task='classification', output_activation='softmax',
-                 cost='crossentropy', learning_rate=0.01, epochs=50, no_add_bias=False):
+                 cost='crossentropy', learning_rate=0.01, epochs=50):
 
         """
         A digit-7 recognizer based on logistic regression algorithm
@@ -47,9 +48,9 @@ class MultilayerPerceptron(Classifier):
         # Should polish the loss_function a little bit more
         self.error = CrossEntropyError
 
-        self.training_set = train
-        self.validation_set = valid
-        self.test_set = test
+        self.training_set = copy.deepcopy(train)
+        self.validation_set = copy.deepcopy(valid)
+        self.test_set = copy.deepcopy(test)
 
         # Record the performance of each epoch for later usages
         # e.g. plotting, reporting..
@@ -79,13 +80,12 @@ class MultilayerPerceptron(Classifier):
         else:
             self.layers = layers
 
-        if not no_add_bias:
-            # add bias values ("1"s) at the beginning of all data sets
-            self.training_set.input = np.insert(self.training_set.input, 0, 1,
-                                                axis=1)
-            self.validation_set.input = np.insert(self.validation_set.input, 0, 1,
-                                                  axis=1)
-            self.test_set.input = np.insert(self.test_set.input, 0, 1, axis=1)
+        # add bias values ("1"s) at the beginning of all data sets
+        self.training_set.input = np.insert(self.training_set.input, 0, 1,
+                                            axis=1)
+        self.validation_set.input = np.insert(self.validation_set.input, 0, 1,
+                                              axis=1)
+        self.test_set.input = np.insert(self.test_set.input, 0, 1, axis=1)
 
     def _get_layer(self, layer_index):
         return self.layers[layer_index]
@@ -113,9 +113,12 @@ class MultilayerPerceptron(Classifier):
         for layer in self.layers:
             last_layer_output = layer.forward(last_layer_output)
             # Do not forget to add bias for every layer
-            last_layer_output = np.insert(last_layer_output, 0, 1, axis=0)
+            if layer != self.layers[-1]:
+                last_layer_output = np.insert(last_layer_output, 0, 1, axis=0)
 
-    def _compute_error(self, target):
+        return last_layer_output
+
+    def _compute_error(self, target, output):
         """
         Compute the total error of the network
 
@@ -124,29 +127,25 @@ class MultilayerPerceptron(Classifier):
         ndarray :
             a numpy array (1,nOut) containing the output of the layer
         """
+        if self.cost == 'crossentropy':
+            loss = CrossEntropyError()
+        else:
+            raise "Unsupported cost function"
 
-        # Get output layer
-        output_layer = self._get_output_layer()
+        return loss.calculate_error(target, output)
 
-        # Calculate the deltas of the output layer
-        output_layer.deltas = target - output_layer.outp
-
-        # Calculate deltas (error terms) backward except the output layer
-        for i in reversed(range(0, len(self.layers) - 1)):
-            current_layer = self._get_layer(i)
-            next_layer = self._get_layer(i+1)
-            next_weights = np.delete(next_layer.weights, 0, axis=0)
-            next_derivatives = next_layer.deltas
-
-            current_layer.computeDerivative(next_derivatives, next_weights.T)
-
-    def _update_weights(self):
+    def _update_weights(self, label):
         """
         Update the weights of the layers by propagating back the error
         """
-        # Update the weights layer by layers
-        for layer in self.layers:
+        deriv = self.layers[-1].computeDerivative(None, label)
+        self.layers[-1].updateWeights(self.learning_rate)
+        deriv = np.delete(deriv, 0, axis=0)
+
+        for layer in self.layers[-2::-1]:
+            deriv = layer.computeDerivative(deriv)
             layer.updateWeights(self.learning_rate)
+            deriv = np.delete(deriv, 0, axis=0)
 
     def train(self, verbose=True):
         """Train the Multi-layer Perceptrons
@@ -170,24 +169,29 @@ class MultilayerPerceptron(Classifier):
                 # Record the performance of each epoch for later usages
                 # e.g. plotting, reporting..
                 self.performances.append(accuracy)
-                print("Accuracy on validation: {0:.2f}%"
-                      .format(accuracy * 100))
+                print("Accuracy on validation: {0:.2f}%".format(accuracy * 100))
+                print("Current training error: {0:.2f}".format(self._error))
                 print("-----------------------------")
 
     def _train_one_epoch(self):
         """
         Train one epoch, seeing all input instances
         """
-
+        self._error = 0.0
         for img, label in zip(self.training_set.input,
                               self.training_set.label):
 
-            target = np.zeros(10)
-            target[label] = 1
+            # Convert the label to a one hot vector
+            label_one_hot = np.zeros(10)
+            label_one_hot[label] = 1
 
-            self._feed_forward(img)
-            self._compute_error(target)
-            self._update_weights()
+            # Do a forward pass to calculate the output and the error
+            output = self._feed_forward(img)
+            error = self._compute_error(label_one_hot, output)
+            self._error += error
+            self._update_weights(label_one_hot)
+
+        self._error /= len(self.training_set.input)
 
     def classify(self, test_instance):
         # Classify an instance given the model of the classifier
